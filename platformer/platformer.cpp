@@ -4,163 +4,204 @@
 #include <conio.h>
 #include <stdlib.h>
 #include<locale.h>
-struct Position {
+class Position {
+private:
     double x;
     double y;
+public:
+    Position() {};
+    Position(double x, double y) {
+        this->x = x;
+        this->y = y;
+    }
+    void addX(double a) {
+        this->x += a;
+    }
+    void addY(double a) {
+        this->y += a;
+    }
+    double getY() {
+        return this->y;
+    }
+    double getX() {
+        return this->x;
+    }
+    void setPos(double x, double y) {
+        this->x = x;
+        this->y = y;
+    }
 };
-struct Player {
+class Player {
+private:
     Position position;
     int health;
     int ammo;
+public:
+    Player(double x, double y, int health, int ammo) {
+        this->position = Position(x, y);
+        this->health = health;
+        this->ammo = ammo;
+    }
+    Player();
+    void puthere(double x, double y) {
+        this->position.setPos(x, y);
+    }
+    int getHealth() {
+        return health;
+    }
+    int getAmmo() {
+        return ammo;
+    }
+    void movePlayer(int b) {
+        switch (b) {
+        case(230):
+            this->position.addY(1);
+            break;
+        case(228):
+            this->position.addX(-1);
+            break;
+        case(235):
+            this->position.addY(-1);
+            break;
+        case(162):
+            this->position.addX(1);
+            break;
+        }
+    }
+    void outPlayer() {
+        printf("Информация об игроке: ");
+        printf("%1.2f %1.2f ", this->position.getX(),this->position.getY());
+        printf("%1d ", this->getHealth());
+        printf("%3d\n", this->getAmmo());
+    }
+    void touchEnemy() {
+        printf("Игрок получил урон!\n");
+        this->health--;
+    }
+    void getHealed(int d) {
+        this->health+=d;
+    }
+    void addAmmo(int d) {
+        this->ammo += d;
+    }
 };
-struct Enemy {
+class Enemy {
+private:
     Position position;
-    int health=1;
-    char type;
+    int health;
+    int type;
+public:
+    Enemy(double x, double y, int health, int type) {
+        this->position.setPos(x, y);
+        this->health = health;
+        this->type = type;
+    }
+    void outEnemy() {
+            printf("Информация о враге:\n");
+            printf("%1.2f %1.2f ", this->position.getX(),this->position.getY());
+            printf("%1d", this->health);
+            printf("%1d\n", this->type);
+    }
+    int getType() {
+        return this->type;
+    }
 };
-struct Platform {
+
+class Platform {
+private:
     Position position;
+public:
+    Platform(double x, double y) {
+        this->position.setPos(x, y);
+    }
+    void outPlatform() {
+        printf("Позиция платформы: %1.2f %1.2f\n", this->position.getX(), this->position.getY());
+    }
+    double getPlatformX() {
+        return this->position.getX();
+    }
+    double getPlatformY() {
+        return this->position.getY();
+    }
 };
-struct Item {
+
+class Item {
+private:
     Position position;
     int type;
+public:
+    Item(double x, double y, int type) {
+        this->position.setPos(x, y);
+        this->type = type;
+    }
+    int getType() {
+        return this->type;
+    }
+    void outItem() {
+        printf("Информация о предмете:\n");
+        printf("Позиция предмета: %1.2lf %1.2lf\n", this->position.getX(), this->position.getY());
+        printf("Тип: %d\n", this->getType());
+    }
 };
-struct Level {
+
+class Level {
+private:
     Player player;
     std::vector <Enemy> enemies;
     std::vector <Platform> platforms;
     std::vector <Item> items;
-    bool win = false;
+    bool win;
+public:
+    Level(Player& player, const std::vector<Enemy>& enemies, const std::vector<Platform>& platforms, const std::vector<Item>& items) {
+        this->player = player;
+        this->enemies = enemies;
+        this->platforms = platforms;
+        this->items = items;
+        this->win = false;
+    };
+    void addPlatform(Platform platform) {
+        this->platforms.push_back(platform);
+    }
+    void addItem(Item item) {
+        this->items.push_back(item);
+    }
+    void addEnemy(Enemy enemy) {
+        this->enemies.push_back(enemy);
+    }
+    void outLevel() {
+        printf("Информация об уровне:\n");
+        this->player.outPlayer();
+        for (Enemy enemy : this->enemies) {
+            enemy.outEnemy();
+        }
+        for (Platform platform : this->platforms) {
+            platform.outPlatform();
+        }
+        for (Item item : this->items) {
+            item.outItem();
+        }
+        if (this->win == true) {
+            printf("Уровень пройден.\n");
+        }
+        else printf("Уровень не пройден.\n");
+    }
+
+    void pickupItem(Item &item) {
+        printf("Подобран предмет!\n");
+        switch (item.getType()) {
+        case(0):
+            this->player.getHealed(1);
+            break;
+        case(1):
+            this->player.addAmmo(50);
+            break;
+        case(2):
+            this->win = true;
+            break;
+        }
+    }
 };
 
-//бизнес логика
-
-void movePlayer(Player &player, int b) {
-    switch (b) {
-    case(230):
-        player.position.y+=1;
-        break;
-    case(228):
-        player.position.x-=1;
-        break;
-    case(235):
-        player.position.y-=1;
-        break;
-    case(162):
-        player.position.x+=1;
-        break;
-    }
-}
-void addPlatform(Level &level,Platform platform) {
-    level.platforms.push_back(platform);
-}
-void addEnemy(Level &level, Enemy enemy) {
-    level.enemies.push_back(enemy);
-}
-void addItem(Level& level, Item item) {
-    level.items.push_back(item);
-}
-void pickupItem(Level &level, Player &player, Item &item) {
-    printf("Подобран предмет!\n");
-    switch (item.type) {
-    case(0):
-        player.health++;
-        break;
-    case(1):
-        player.ammo += 50;
-        break;
-    case(2):
-        level.win = true;
-        break;
-    }
-}
-void touchEnemy(Player &player, Enemy &enemy) {
-    printf("Игрок получил урон!\n");
-    player.health--;
-}
-
-//вывод информации
-
-void outPlatform(Platform &platform) {
-    printf("Позиция платформы: %1.2f %1.2f\n", platform.position.x, platform.position.y);
-}
-void outItem(Item &item) {
-    printf("Информация о предмете: ");
-    printf("%1.2f %1.2f ", item.position.x, item.position.y);
-    printf("%d\n", item.type);  
-}
-void outPlayer(Player &player) {
-    printf("Информация об игроке: ");
-    printf("%1.2f %1.2f ", player.position.x, player.position.y);
-    printf("%1d ", player.health);
-    printf("%3d\n", player.ammo);
-}
-void outEnemy(Enemy &enemy) {
-    printf("Информация о враге:\n");
-    printf("%1.2f %1.2f ", enemy.position.x, enemy.position.y);
-    printf("%1d", enemy.health);
-    printf("%1d\n", enemy.type);
-}
-void outLevel(Level &level) {
-    printf("Информация об уровне:\n");
-    outPlayer(level.player);
-    for (Enemy enemy : level.enemies) {
-        outEnemy(enemy);
-    }
-    for (Platform platform : level.platforms) {
-        outPlatform(platform);
-    }
-    for (Item item : level.items) {
-        outItem(item);
-    }
-    if (level.win == true) {
-        printf("Уровень пройден.\n");
-    }
-    else printf("Уровень не пройден.\n");
-}
-
-// Функции инициализации 
-
-Player initPlayer(double x, double y, int health, int ammo) {
-    Player player;
-    Position position{ x,y };
-    player.position = position;
-    player.health = health;
-    player.ammo = ammo;
-    return player;
-}
-Enemy initEnemy(double x, double y, char type, int health = 1) {
-    Enemy enemy;
-    Position position{ x,y };
-    enemy.position = position;
-    enemy.type = type;
-    enemy.health = health;
-    return enemy;
-}
-Platform initPlatform(double x, double y) {
-    Platform platform;
-    Position position{ x,y };
-    platform.position = position;
-    return platform;
-}
-Item initItem(double x, double y, int type) {
-    Item item;
-    Position position{ x,y };
-    item.position = position;
-    item.type = type;
-    return item;
-}
-Level initLevel(Player &player, const std::vector<Enemy>& enemies, const std::vector<Platform>& platforms, const std::vector<Item>& items) {
-    Level level;
-    level.player = player;
-    level.enemies = enemies;
-    level.platforms = platforms;
-    level.items = items;
-    level.win = false;
-    return level;
-}
-
-//ввод информации
 
 Item writeItem() {
     double x, y;
