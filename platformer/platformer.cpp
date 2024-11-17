@@ -4,6 +4,7 @@
 #include <conio.h>
 #include <stdlib.h>
 #include<locale.h>
+
 struct Position {
     double x;
     double y;
@@ -26,6 +27,7 @@ struct Item {
     int type;
 };
 struct Level {
+    char name[20];
     Player player;
     std::vector <Enemy> enemies;
     std::vector <Platform> platforms;
@@ -61,15 +63,18 @@ void addItem(Level& level, Item item) {
     level.items.push_back(item);
 }
 void pickupItem(Level &level, Player &player, Item &item) {
-    printf("Подобран предмет!\n");
+    printf("Подобран предмет ");
     switch (item.type) {
     case(0):
+        printf("на здоровье.\n");
         player.health++;
         break;
     case(1):
+        printf("на патроны.\n");
         player.ammo += 50;
         break;
     case(2):
+        printf("на победу.\n");
         level.win = true;
         break;
     }
@@ -103,6 +108,7 @@ void outEnemy(Enemy &enemy) {
 }
 void outLevel(Level &level) {
     printf("Информация об уровне:\n");
+    printf("%s\n", level.name);
     outPlayer(level.player);
     for (Enemy enemy : level.enemies) {
         outEnemy(enemy);
@@ -129,7 +135,7 @@ Player initPlayer(double x, double y, int health, int ammo) {
     player.ammo = ammo;
     return player;
 }
-Enemy initEnemy(double x, double y, char type, int health = 1) {
+Enemy initEnemy(double x, double y, char type, int health) {
     Enemy enemy;
     Position position{ x,y };
     enemy.position = position;
@@ -150,8 +156,9 @@ Item initItem(double x, double y, int type) {
     item.type = type;
     return item;
 }
-Level initLevel(Player &player, const std::vector<Enemy>& enemies, const std::vector<Platform>& platforms, const std::vector<Item>& items) {
+Level initLevel(const char *name,Player &player, const std::vector<Enemy>& enemies, const std::vector<Platform>& platforms, const std::vector<Item>& items) {
     Level level;
+    strcpy(level.name, name);
     level.player = player;
     level.enemies = enemies;
     level.platforms = platforms;
@@ -160,11 +167,68 @@ Level initLevel(Player &player, const std::vector<Enemy>& enemies, const std::ve
     return level;
 }
 
-//ввод информации
-
+//функции ввода через консоль
+Player writePlayer() {
+    double x, y;
+    int health, ammo;
+    printf("Создание игрока:\n");
+    printf("Введите позицию игрока: ");
+    while (scanf("%lf %lf", &x, &y) != 2) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    while (getchar() != '\n');
+    printf("Введите количество здоровья: ");
+    while (scanf("%d", &health) != 1) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    while (getchar() != '\n');
+    printf("Введите количество патронов: ");
+    while (scanf("%d", &ammo) != 1) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    return initPlayer(x, y, health, ammo);
+}
+Enemy writeEnemy() {
+    double x, y;
+    int health,type;
+    printf("Создание врага:\n");
+    printf("Введите позицию врага: ");
+    while (scanf("%lf %lf", &x, &y) != 2) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    while (getchar() != '\n');
+    printf("Введите здоровье: ");
+    while (scanf("%d", &health) != 1) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    while (getchar() != '\n');
+    printf("Введите тип:  ");
+    while (scanf("%d", &type) != 1) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    while (getchar() != '\n');
+    return initEnemy(x, y, type,health);
+}
+Platform writeplatform() {
+    double x, y;
+    printf("Введите позицию предмета:  ");
+    while (scanf("%lf %lf", &x,&y) != 2) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    while (getchar() != '\n');
+    return initPlatform(x, y);
+}
 Item writeItem() {
     double x, y;
     int type;
+    printf("Создание предмета:\n");
     printf("Введите позицию предмета: ");
     while (scanf("%lf %lf", &x, &y) != 2) {
         printf("Ошибка ввода.\n");
@@ -175,21 +239,58 @@ Item writeItem() {
         printf("Ошибка ввода.\n");
         while (getchar() != '\n');
     }
+    while (getchar() != '\n');
     return initItem(x, y, type);
 }
-
+Level writeLevel() {    
+    char name[20];
+    Player player;
+    std::vector<Item> items;
+    std::vector<Enemy> enemies;
+    std::vector<Platform> platforms;
+    printf("Создание уровня:  \n");
+    printf("Введите название уровня: ");
+    while (scanf("%s", name) != 1) {
+        printf("Ошибка ввода.\n");
+        while (getchar() != '\n');
+    }
+    while (getchar() != '\n');
+    player = writePlayer();
+    bool a = 1;
+    while (a == 1) {
+        items.push_back(writeItem());
+        printf("Хотите добавить ещё предметов? 1 - да, 0 - нет");
+        scanf("%d", &a);
+        while (getchar() != '\n');
+    }
+    a = 1;
+    while (a == 1) {
+        platforms.push_back(writeplatform());
+        printf("Хотите добавить ещё платформу? 1 - да, 0 - нет");
+        scanf("%d", &a);
+        while (getchar() != '\n');
+    }
+    a = 1;
+    while (a == 1) {
+        enemies.push_back(writeEnemy());
+        printf("Хотите добавить ещё врагов? 1 - да, 0 - нет");
+        scanf("%d", &a);
+        while (getchar() != '\n');
+    }
+    return initLevel(name, player, enemies, platforms, items);
+}
 int main() {
     setlocale(LC_ALL, "RUS");
 
     //тест функций инициализации и "статических" переменных
     Player player = initPlayer(0, 0, 3, 50);
-    Enemy enemy = initEnemy(1.0, 1.0, 0);
+    Enemy enemy = initEnemy(1.0, 1.0, 1, 3);
     Platform platform = initPlatform(2.0, 2.0);
     Item item = initItem(3.0, 3.0, 1);
     std::vector<Enemy> enemies = { enemy };
     std::vector<Platform> platforms = { platform };
     std::vector<Item> items = { item };
-    Level level = initLevel(player, enemies, platforms, items);
+    Level level = initLevel("levelname",player, enemies, platforms, items);
     outLevel(level);
 
     //работа с динамическим массивом переменных и ввод с консоли
@@ -213,7 +314,7 @@ int main() {
     pickupItem(level, level.player, level.items[0]);
     outPlayer(level.player);
     addPlatform(level,initPlatform(1.5,1.5));
-    addEnemy(level,initEnemy(1,1,3));
+    addEnemy(level,initEnemy(1,1,1,3));
     outLevel(level);
     return 0;
 }
