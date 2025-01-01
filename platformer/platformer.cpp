@@ -1,5 +1,6 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
+#include <string>
 #include <vector>
 #include <conio.h>
 #include <stdlib.h>
@@ -8,7 +9,6 @@
 #define LEFT 228
 #define RIGHT 162
 #define DOWN 230
-class Level;
 class Position {
 private:
     int x;
@@ -49,70 +49,6 @@ public:
     }
 };
 
-class Player {
-private:
-    Position position;
-    int health;
-public:
-    Player() {}                         //конструкторы
-    Player(int x, int y, int health) { 
-        Position position(x, y);
-        this->position = position;
-        this->health = health;
-
-    }
-    Player(Position position, int health, int ammo) {
-        this->position = position;
-        this->health = health;
-    }
-    Position getPos() {                           //функции доступа к членам класса
-        return this->position;
-    }
-    int getHealth() {
-        if (this->health < 1) printf("Игрок погиб!\n");
-        return this->health;
-    }
-    void addHealth(int d) {
-        this->health += d;
-    }
-    void movePlayer(int b) {
-        switch (b) {
-        case(UP):
-            this->position.move(0, 1);
-            break;
-        case(LEFT):
-            this->position.move(-1, 0);
-            break;
-        case(DOWN):
-            this->position.move(0, -1);
-            break;
-        case(RIGHT):
-            this->position.move(1, 0);
-            break;
-        }
-    }
-    void writePlayer() {                                //создание путём ввода через консоль
-        printf("Создание игрока:\n");
-        this->position.writepos();
-        printf("Введите здоровье: ");
-        while (scanf("%d", &this->health) != 1) {
-            printf("Ошибка ввода.\n");
-            while (getchar() != '\n');
-        }
-        printf("Игрок готов!\n");
-    }
-    Player operator++(int) {                   //перегрузка постфиксного оператора "++"
-        this->health++;
-    }
-    Player& operator++() {
-        this->health++;
-    }
-    friend void outPlayer(Player player);     //сдружаем класс Player с функцией outPlayer
-};
-
-void outPlayer(Player player) {              //дружественная функция
-    printf("Позиция игрока: %d %d   Здоровье: %d", player.position.getX(), player.position.getY(), player.health);
-}
 class Enemy {
 private:
     Position position;
@@ -151,7 +87,7 @@ public:
         }
         printf("Новый враг готов!\n");
     }
-    bool operator ==(Enemy enemy) {                      //РАЗУМНОЕ ИСПОЛЬЗОВАНИЕ ОПЕРАТОРА THIS
+    bool operator ==(Enemy enemy) {                      //разумное использование оператора this
         return ((this->position.getX() == enemy.position.getX()) && (this->position.getY() == enemy.position.getY()));
     }
 };
@@ -215,12 +151,89 @@ public:
             while (getchar() != '\n');
         }
     }
-    bool operator ==(Item item) {                          //РАЗУМНОЕ ИСПОЛЬЗОВАНИЕ ОПЕРАТОРА THIS
+    bool operator ==(Item item) {                          //разуменое использование оператора THIS
         return ((this->position.getX() == item.position.getX())&&(this->position.getY()==item.position.getY()));
     }
 
 };
 
+
+class Player {
+private:
+    Position position;
+    int health;
+public:
+    Player() {}                         //конструкторы
+    Player(int x, int y, int health) {
+        Position position(x, y);
+        this->position = position;
+        this->health = health;
+
+    }
+    Player(Position position, int health, int ammo) {
+        this->position = position;
+        this->health = health;
+    }
+    Position getPos() {                           //функции доступа к членам класса
+        return this->position;
+    }
+    int getHealth() {
+        if (this->health < 1) printf("Игрок погиб!\n");
+        return this->health;
+    }
+    void addHealth(int d) {
+        this->health += d;
+    }
+    void movePlayer(int b) {
+        switch (b) {
+        case(UP):
+            this->position.move(0, 1);
+            break;
+        case(LEFT):
+            this->position.move(-1, 0);
+            break;
+        case(DOWN):
+            this->position.move(0, -1);
+            break;
+        case(RIGHT):
+            this->position.move(1, 0);
+            break;
+        }
+    }
+    void checkCollisionEnemy(Enemy& enemy) {
+        if ((this->position.getX() == enemy.getpos().getX()) && (this->position.getY() == enemy.getpos().getY())) {
+            printf("Вы получили урон!\n");
+            enemy.takeDamage();
+            this->addHealth(-1);
+        }
+    }
+    void checkCollisionItem(Item* item) {
+        if ((this->position.getX() == item->getpos().getX()) && (this->position.getY() == item->getpos().getY())) {
+            item->getpos().setpos(-1, -1);
+        }
+    }
+    void writePlayer() {                                //создание путём ввода через консоль
+        printf("Создание игрока:\n");
+        this->position.writepos();
+        printf("Введите здоровье: ");
+        while (scanf("%d", &this->health) != 1) {
+            printf("Ошибка ввода.\n");
+            while (getchar() != '\n');
+        }
+        printf("Игрок готов!\n");
+    }
+    Player operator++(int) {                   //перегрузка постфиксного оператора "++"
+        this->health++;
+    }
+    Player& operator++() {                    //перегрузка префиксного оператора "
+        this->health++;
+    }
+    friend void outPlayer(Player player);     //сдружаем класс Player с функцией outPlayer
+};
+
+void outPlayer(Player player) {              //дружественная функция
+    printf("Позиция игрока: %d %d   Здоровье: %d", player.position.getX(), player.position.getY(), player.health);
+}
 class Level {
 private:
     std::string name;
@@ -230,7 +243,7 @@ private:
     std::vector <Item> items;
     bool win;
     char grid[20][20];
-    static int completedTimes;
+    static int completedTimes;        //статическая переменная
 public:
     Level() {};           
     Level(std::string name, Player player, const std::vector<Enemy> enemies, const std::vector<Platform> platforms, const std::vector<Item> items) {
@@ -310,6 +323,7 @@ public:
     void displayName() {
         std::cout << this->name << std::endl;
     }
+    
     Player* getPlayer() {
         return &this->player;
     }                      //этот метод возвращает адрес игрока
@@ -323,7 +337,6 @@ public:
         return this->platforms;
     }
     void writeLevel() {  
-        char name[20];
         this->player.writePlayer();
         Item it;
         Enemy en;
@@ -332,11 +345,7 @@ public:
         std::vector<Enemy> enemies;
         std::vector<Platform> Platforms;
         printf("Введите название уровня: ");
-        while (scanf("%20s", name) != 1) {
-            printf("Попробуйте ещё раз.\n");
-            while (getchar() != '\n');
-        }
-        while (getchar() != '\n');
+        std::getline(std::cin, this->name);
         int choice = 1;
         printf("Создание предметов:\n");
         while (choice) {
@@ -379,6 +388,7 @@ public:
         this->enemies = enemies;
         this->platforms = platforms;
     }
+    
     void renderGrid() {          //да простит меня боже за этот ужас
         char playGrid[20][20]{ {"*******************"}, {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"},  {"*******************"} };
         for (Enemy enemy : this->enemies) {
@@ -407,59 +417,40 @@ public:
         switch (dest) {
         case (UP):
             if (((y + 1) >= 0) && ((y + 1) < 20))
-                if (grid[x][y + 1] == '*') this->getPlayer()->movePlayer(UP);
-                else if (grid[x][y+1] == 'I' || grid[x][y+1] == 'W') {
-                    this->getPlayer()->movePlayer(UP);
-                    this->pickupItem(x, y+1);
-                }
-                else if (grid[x][y+1] == 'E') {
-                    this->getPlayer()->addHealth(-1);
-                    this->deleteEnemy(x, y+1);
-                    return -2;
-                }
+                this->getPlayer()->movePlayer(UP);
             break;
         case (LEFT):
             if (((x - 1) >= 0) && ((x - 1) < 20))
-                if (grid[x - 1][y] == '*') this->getPlayer()->movePlayer(LEFT);
-                else if (grid[x - 1][y] == 'I' || grid[x - 1][y] == 'W') {
-                    this->getPlayer()->movePlayer(LEFT);
-                    this->pickupItem(x - 1, y);
-                }
-                else if (grid[x - 1][y] == 'E') {
-                    this->getPlayer()->addHealth(-1);
-                    this->deleteEnemy(x - 1, y);
-                    return -2;
-                }
+                this->getPlayer()->movePlayer(LEFT);
             break;
         case(DOWN):
             if (((y - 1) >= 0) && ((y - 1) < 20))
-                if (grid[x][y - 1] == '*') this->getPlayer()->movePlayer(DOWN);
-                else if (grid[x][y - 1] == 'I' || grid[x][y - 1] == 'W') {
-                    this->getPlayer()->movePlayer(DOWN);
-                    this->pickupItem(x, y - 1);
-                }
-                else if (grid[x][y-1] == 'E') {
-                    this->getPlayer()->addHealth(-1);
-                    this->deleteEnemy(x, y-1);
-                    return -2;
-                }
+                this->getPlayer()->movePlayer(DOWN);
             break;
         case(RIGHT):
             if (((x + 1) >= 0) && ((x + 1) < 20)) {
-                if (grid[x + 1][y] == '*') this->getPlayer()->movePlayer(RIGHT);
-                else if (grid[x + 1][y] == 'I' || grid[x + 1][y] == 'W') {
-                    this->getPlayer()->movePlayer(RIGHT);
-                    this->pickupItem(x + 1, y);
-                }
-                else if (grid[x + 1][y] == 'E') {
-                    this->getPlayer()->addHealth(-1);
-                    this->deleteEnemy(x + 1, y);
-                    return -2;
-                }
+                 this->getPlayer()->movePlayer(RIGHT);
             }
         }
     }
-    static int getCompletedTimes() {
+    void generateNewLevel() {
+        int type;
+        do {
+            type = rand() % 2;
+            this->items.push_back(Item(rand() % 20, rand() % 20, type));
+        } while (type != 1);
+        this->enemies.push_back(Enemy(rand() % 20, rand() % 20));
+        this->platforms.push_back(Platform(rand() % 20, rand() % 20));
+        this->name = "Levelname" + completedTimes;
+    }
+    void collectGarbage() {
+        for (Item item : items) {
+            if ((item.getpos().getX() < 0) || (item.getpos().getY() < 0) || (item.getpos().getX() > 20) || (item.getpos().getY() > 20)) {
+                pickupItem(item.getpos().getX(), item.getpos().getY());
+            }
+        }
+    }
+    static int getCompletedTimes() { //пример статического метода
         return completedTimes;
     }
     Level operator+ (const Level& level) {       //перегрузка оператора +
@@ -488,12 +479,11 @@ public:
         return newlevel;
     }
     };
-    int Level::completedTimes = 0;
+int Level::completedTimes = 0; //инициализация статической переменной
 
 int main() {
     setlocale(LC_ALL, "rus");
-    Player* pl;
-    pl = new Player(1, 2, 1);     //этот указатель будет удалён оператором delete вместе с содержимым
+    Player *pl = new Player(1, 2, 1);
     Enemy enemy(2, 2);
     std::vector<Enemy>enemies{ enemy };
     Position pos(3, 10);
@@ -501,12 +491,12 @@ int main() {
     std::vector <Platform> platforms{ platform };
     std::string name{ "level1" };
     Item* arritems;
-    arritems = new Item[3]{ Item(1,3,1),Item(4,5,0),Item(7,8,0) };          //этот указатель тоже будет удалён оператором delete
+    arritems = new Item[3]{ Item(1,3,1),Item(4,5,0),Item(7,8,0) };          //этот указатель будет удалён оператором delete
     std::vector<Item> items;
     for (int i = 0; i < 3; i++) {
         items.push_back(arritems[i]);
     }
-    Level level1(name, *pl, enemies, platforms, items);
+    Level level1(name,*pl, enemies, platforms, items);
     Level level;
     int menu = 0;
     while (true) {
@@ -517,17 +507,24 @@ int main() {
             if (level.getPlayer()->getHealth() == 0)level.getPlayer()->addHealth(1);
             int moveResult = 0;
             while (moveResult != 27) {
-                if (level.getwin() == true)break;
+                if (level.getwin() == true)level.generateNewLevel();
                 level.displayName();
                 outPlayer(*level.getPlayer());
-                if (moveResult == -1) printf("Вы получили урон!\n");
                 level.renderGrid();
                 moveResult = _getch();
                 level.movePlayer(moveResult);
+                for (Item item : level.getItems()) {
+                    Item* it = &item;
+                    level.getPlayer()->checkCollisionItem(it);
+                }
+                for (Enemy& enemy : level.getEnemies()) {
+                    level.getPlayer()->checkCollisionEnemy(enemy);
+                }
                 if (level.getPlayer()->getHealth() == 0) {
                     printf("Игра окончена!\n");
                     break;
                 }
+                level.collectGarbage();
             }
         }
         else if (menu == 2) {
