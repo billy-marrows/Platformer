@@ -37,15 +37,21 @@ public:
         printf("Позиция: %d %d  ", this->x, this->y);
     }
     void writepos() {
-        printf("Введите координаты: ");
+        printf("Введите координаты (от 0 до 20): ");
         int flag =  1;
         while (flag) {
-            while (scanf("%d %d", &this->x, &this->y) != 2) {
-                printf("Ошибка ввода.\n");
-                while (getchar() != '\n');
+            try {
+                while (scanf("%d %d", &this->x, &this->y) != 2) {
+                    printf("Ошибка ввода.\n");
+                    while (getchar() != '\n');
+                }
+                if ((this->x >= 0) && (this->x < 19) && (this->y >= 0) && (this->y < 20)) flag = 0;
+                else throw 1;
             }
-            if ((this->x >= 0) && (this->x < 19) && (this->y >= 0) && (this->y < 20)) flag = 0;
-        }
+            catch(int e){
+                printf("Координаты должны быть в пределах от 0 до 20!\n");
+            }
+       }
     }
 };
 
@@ -234,6 +240,7 @@ public:
 void outPlayer(Player player) {              //дружественная функция
     printf("Позиция игрока: %d %d   Здоровье: %d\n", player.position.getX(), player.position.getY(), player.health);
 }
+
 class Level {
 private:
     std::string name;
@@ -256,7 +263,7 @@ public:
     }
     void outLevel() {                                       //вывод в консоль
         printf("Информация об уровне:\n  ");
-        printf("  Название: %s\n  ", &name);
+        printf("  Название: %s\n  ", name);
         outPlayer(this->player);
         for (Enemy enemy : this->enemies) {
             printf("  ");
@@ -444,7 +451,7 @@ public:
         } while (type != 1);
         this->enemies.push_back(Enemy(rand() % 20, rand() % 20));
         this->platforms.push_back(Platform(rand() % 20, rand() % 20));
-        this->name = "Levelname" + completedTimes;
+        this->name = "generatedLevel";
         this->win = false;
     }
     void collectGarbage() {
@@ -487,11 +494,19 @@ public:
         return newlevel;
     }
     };
+
 int Level::completedTimes = 0; //инициализация статической переменной
 
 int main() {
     setlocale(LC_ALL, "rus");
-    Player *pl = new Player(1, 2, 10);
+    Player* pl;
+    try {
+        pl = new Player(1, 2, 10);
+    }
+    catch (const std::bad_alloc& e) {
+        std::cerr << "Ошибка выделения памяти, завершение работы..." << std::endl;
+        return -1;
+    }
     Enemy enemy(2, 2);
     std::vector<Enemy>enemies{ enemy };
     Position pos(3, 10);
@@ -499,19 +514,48 @@ int main() {
     std::vector <Platform> platforms{ platform };
     std::string name{ "level1" };
     Item* arritems;
-    arritems = new Item[3]{ Item(1,3,1),Item(4,5,0),Item(7,8,0) };
+    try {
+        arritems = new Item[3]{ Item(1,3,1),Item(4,5,0),Item(7,8,0) };
+    }
+    catch (const std::bad_alloc& e) {
+        std::cerr << "Ошибка выделения памяти, завершение работы..." << std::endl;
+        return -1;
+    }
+    
     std::vector<Item> items;
     for (int i = 0; i < 3; i++) {
         items.push_back(arritems[i]);
     }
-    Level level1(name,*pl, enemies, platforms, items);
+    Level levels[5][5];
+    Player* playerexample;
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            Level levelarr[5];
+            int iteration = rand() % 6;
+            for (int k = 0; k < iteration; k++) {
+                levelarr[k].generateNewLevel();
+            }
+            levels[i][j] = Level();
+            levels[i][j].generateNewLevel();
+            playerexample=levels[i][j].getPlayer();
+            *playerexample = Player(rand() % 20, rand() % 20, 1);
+            for (int k = 0; k < iteration; k++) {
+                levels[i][j] = levels[i][j] + levelarr[k];
+            }
+        }                                                                  
+    }
+    levels[0][0] = Level(name, *pl, enemies, platforms, items);
     Level level;
     int menu = 0;
     while (true) {
         printf("Меню:\n1)Играть\n2)Ввести уровень с клавиатуры\n3)Выход\n");
         scanf("%d", &menu);
         if (menu == 1) {
-            level = level1;
+            int lvlnum=0;
+            printf("Введите номер уровня для игры (от 1 до 25):\nНаписанный вами уровень является уровнем 1.\n");
+            do { scanf("%d", &lvlnum); } while ((lvlnum < 1) || (lvlnum > 25));
+            lvlnum--;
+            level = levels[lvlnum%5][lvlnum/5];
             if (level.getPlayer()->getHealth() == 0)level.getPlayer()->addHealth(1);
             int moveResult = 0;
             while (moveResult != 27) {
@@ -536,7 +580,7 @@ int main() {
             }
         }
         else if (menu == 2) {
-            level1.writeLevel();
+            levels[0][0].writeLevel();
         }
         else if (menu == 3) break;
     }
