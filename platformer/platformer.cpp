@@ -4,6 +4,7 @@
 #include <vector>
 #include <conio.h>
 #include <stdlib.h>
+#include <algorithm>
 #include<locale.h>
 #define UP 235
 #define LEFT 228
@@ -34,7 +35,7 @@ public:
         this->y = y;
     }
     void outpos() {
-        printf("Позиция: %d %d  ", this->x, this->y);
+        std::cout<<"Позиция: "<<this->x<<" "<< this->y<<std::endl;
     }
     void writepos() {
         printf("Введите координаты (от 0 до 20): ");
@@ -55,9 +56,17 @@ public:
     }
 };
 
-class Enemy {
-private:
+class gameObject {
+protected:
     Position position;
+public:
+    Position getpos() {
+        return this->position;
+    }
+};
+
+class Enemy :public gameObject{
+private:
     int health;
 public:
     Enemy() {};
@@ -69,9 +78,6 @@ public:
     Enemy(Position position) {
         this->position = position;
         this->health = 1;
-    }
-    Position getpos() {
-        return this->position;
     }
     int getHealth() {
         return this->health;
@@ -96,11 +102,12 @@ public:
     bool operator ==(Enemy enemy) {                      //разумное использование оператора this
         return ((this->position.getX() == enemy.position.getX()) && (this->position.getY() == enemy.position.getY()));
     }
-};
+    bool operator<(Enemy other) {
+        return (this->getpos().getX() < other.getpos().getX());
+    }
+}; // 
 
-class Platform {
-private:
-    Position position;
+class Platform :public gameObject{
 public:
     Platform() {};
     Platform(int x, int y) {  // Изменено на int
@@ -108,9 +115,6 @@ public:
     }
     Platform(Position position) {
         this->position = position;
-    }
-    Position getpos() {
-        return this->position;
     }
     void outPlatform() {
         printf("Информация о платформе: ");
@@ -123,50 +127,53 @@ public:
     }
 };
 
-class Item {
-private:
+class Item :public gameObject{
+protected:
     Position position;
-    int type;
 public:
     Item() {};           
-    Item(int x, int y, int type) {
+    Item(int x, int y) {
         Position position(x, y);
         this->position = position;
-        this->type = type;
     }
-    Item(Position position, int type) {
+    Item(Position position) {
         this->position = position;
-        this->type = type;
     }
-    Position &getpos() {      
-        return this->position;
-    }
-    int getType() {
-        return this->type;
+    virtual int getType() {
+        return 0;
     }
     void outItem() {   
         printf("Информация о предмете:");
         this->position.outpos();
-        printf("Тип: %d\n", this->type);
+        this->getType();
     }
     void writeItem() {      
         this->position.writepos();
         printf("Введите тип предмета: ");
-        while (scanf("%d", &this->type) != 1) {
-            printf("Ошибка ввода.\n");
-            while (getchar() != '\n');
-        }
     }
     bool operator ==(Item item) {                          //разуменое использование оператора THIS
         return ((this->position.getX() == item.position.getX())&&(this->position.getY()==item.position.getY()));
     }
-
+};
+class Win : public Item {
+public:
+    Win() {};
+    Win(int x, int y) {
+        Position position(x, y);
+        this->position = position;
+    }
+    Win(Position position):Item(position) {}
+    int getType() {
+        return 1;
+    }
+    Win& operator =(Item item) {
+        this->getpos().setpos(item.getpos().getX(), item.getpos().getY());
+        return *this;
+    }
 };
 
-
-class Player {
+class Player:public gameObject {
 private:
-    Position position;
     int health;
 public:
     Player() {}                         //конструкторы
@@ -179,9 +186,6 @@ public:
     Player(Position position, int health, int ammo) {
         this->position = position;
         this->health = health;
-    }
-    Position getPos() {                           //функции доступа к членам класса
-        return this->position;
     }
     int getHealth() {
         if (this->health < 1) printf("Игрок погиб!\n");
@@ -247,13 +251,13 @@ private:
     Player player;
     std::vector <Enemy> enemies;
     std::vector <Platform> platforms;
-    std::vector <Item> items;
+    std::vector <Item*> items;
     bool win;
     char grid[20][20];
     static int completedTimes;        //статическая переменная
 public:
     Level() {};           
-    Level(std::string name, Player player, const std::vector<Enemy> enemies, const std::vector<Platform> platforms, const std::vector<Item> items) {
+    Level(std::string name, Player player, const std::vector<Enemy> enemies, const std::vector<Platform> platforms, const std::vector<Item*> items) {
         this->name = name;
         this->player = player;
         this->enemies = enemies;
@@ -273,9 +277,9 @@ public:
             printf("  ");
             platform.outPlatform();
         }
-        for (Item item : this->items) {
+        for (Item* item : this->items) {
             printf("  ");
-            item.outItem();
+            item->outItem();
         }
         if (this->win == true) {
             printf("  Уровень пройден.\n\n");
@@ -283,15 +287,15 @@ public:
         else printf("  Уровень не пройден.\n\n");
     }
     void pickupItem(int x, int y) {
-        Item pickedUpItem;
-        for (Item item : this->items) {
-            if ((item.getpos().getX() == x) && (item.getpos().getY() == y)) {
+        Item* pickedUpItem=NULL;
+        for (Item* item : this->items) {
+            if ((item->getpos().getX() == x) && (item->getpos().getY() == y)) {
                 pickedUpItem = item;
                 items.erase(std::remove(items.begin(), items.end(), item), items.end());
                 break;
             }
         }
-        switch (pickedUpItem.getType()) {
+        switch (pickedUpItem->getType()) {
         case(0):
             printf("Подобран предмет на здоровье.\n");
             this->player.addHealth(1);
@@ -304,7 +308,7 @@ public:
             break;
         }
     }
-    void addItem(Item item) {
+    void addItem(Item* item) {
         this->items.push_back(item);
     }
     void addPlatform(Platform platform) {
@@ -333,7 +337,7 @@ public:
     Player* getPlayer() {
         return &this->player;
     }                      //этот метод возвращает адрес игрока
-    std::vector<Item>& getItems() {
+    std::vector<Item*>& getItems() {
         return this->items;
     }
     std::vector<Enemy>& getEnemies() {
@@ -347,7 +351,7 @@ public:
         Item it;
         Enemy en;
         Platform pl;
-        std::vector<Item> items;
+        std::vector<Item*> items;
         std::vector<Enemy> enemies;
         std::vector<Platform> Platforms;
         printf("Введите название уровня: ");
@@ -356,13 +360,13 @@ public:
         printf("Создание предметов:\n");
         while (choice) {
             it.writeItem();
-            items.push_back(it);
+            items.push_back(&it);
             printf("Добавить ещё предметов? 0 = нет, 1 = да ");
             scanf("%d", &choice);
             if (!choice) {
                 int haswin = 0;
-                for (Item item : items) {
-                    if (item.getType() == 1) {
+                for (Item* item : items) {
+                    if (item->getType() == 1) {
                         haswin++;
                     }
                 }
@@ -402,11 +406,11 @@ public:
         for (Platform platform : this->platforms) {
             playGrid[platform.getpos().getX()][platform.getpos().getY()] = 'X';
         }
-        for (Item item : this->items) {
-            if (item.getType() == 1) playGrid[item.getpos().getX()][item.getpos().getY()] = 'W';
-            else playGrid[item.getpos().getX()][item.getpos().getY()] = 'I';
+        for (Item* item : this->items) {
+            if (item->getType() == 1) playGrid[item->getpos().getX()][item->getpos().getY()] = 'W';
+            else if (item->getType()==0)playGrid[item->getpos().getX()][item->getpos().getY()] = 'I';
         }
-        playGrid[this->getPlayer()->getPos().getX()][this->getPlayer()->getPos().getY()] = 'P';
+        playGrid[this->getPlayer()->getpos().getX()][this->getPlayer()->getpos().getY()] = 'P';
         for (int i = 0; i < 20; i++) {
             for (int j = 0; j < 20; j++) {
                 printf("%c", playGrid[j][i]);
@@ -417,8 +421,8 @@ public:
     }
     int movePlayer(int dest) {
         if (dest == 27) return 27;
-        int x = this->getPlayer()->getPos().getX(),
-            y = this->getPlayer()->getPos().getY();
+        int x = this->getPlayer()->getpos().getX(),
+            y = this->getPlayer()->getpos().getY();
         switch (dest) {
         case (UP):
             if (((y + 1) >= 0) && ((y + 1) < 20)) {
@@ -447,7 +451,8 @@ public:
         int type;
         do {
             type = rand() % 2;
-            this->items.push_back(Item(rand() % 20, rand() % 20, type));
+            if (type) this->items.push_back(new Win(rand() % 20, rand() % 20));
+            else this->items.push_back(new Item(rand() % 20, rand() % 20));
         } while (type != 1);
         this->enemies.push_back(Enemy(rand() % 20, rand() % 20));
         this->platforms.push_back(Platform(rand() % 20, rand() % 20));
@@ -455,9 +460,9 @@ public:
         this->win = false;
     }
     void collectGarbage() {
-        for (Item item : items) {
-            if ((item.getpos().getX() < 0) || (item.getpos().getY() < 0) || (item.getpos().getX() > 20) || (item.getpos().getY() > 20)) {
-                this->pickupItem(item.getpos().getX(), item.getpos().getY());
+        for (Item* item : items) {
+            if ((item->getpos().getX() < 0) || (item->getpos().getY() < 0) || (item->getpos().getX() > 20) || (item->getpos().getY() > 20)) {
+                this->pickupItem(item->getpos().getX(), item->getpos().getY());
             }
         }
         for (Enemy enemy : enemies) {
@@ -479,10 +484,10 @@ public:
         for (Enemy enemigo : this->enemies) {
             newlevel.addEnemy(enemigo);
         }
-        for (Item item : level.items) {
+        for (Item* item : level.items) {
             newlevel.addItem(item);
         }
-        for (Item item : this->items) {
+        for (Item *item : this->items) {
             newlevel.addItem(item);
         }
         for (Platform platform : level.platforms) {
@@ -493,12 +498,23 @@ public:
         }
         return newlevel;
     }
+    void sort() {
+        std::sort(enemies.begin(), enemies.end());
+    }
     };
 
 int Level::completedTimes = 0; //инициализация статической переменной
 
 int main() {
     setlocale(LC_ALL, "rus");
+    
+    Item* itempoint = new Item(1, 1);
+    printf("Работа виртуальной функции: %d\n", itempoint->getType());
+    itempoint = new Win(1, 1);
+    printf("Работа переопределённой виртуальной функции: %d\n", itempoint->getType());
+    
+    
+    
     Player* pl;
     try {
         pl = new Player(1, 2, 10);
@@ -513,19 +529,21 @@ int main() {
     Platform platform(pos);
     std::vector <Platform> platforms{ platform };
     std::string name{ "level1" };
-    Item* arritems;
+    Item** arritems;
     try {
-        arritems = new Item[3]{ Item(1,3,1),Item(4,5,0),Item(7,8,0) };
+        arritems = new Item*[3]{ new Item(1,3),new Item(4,5),new Win(7,8) };
     }
     catch (const std::bad_alloc& e) {
         std::cerr << "Ошибка выделения памяти, завершение работы..." << std::endl;
         return -1;
     }
     
-    std::vector<Item> items;
+    std::vector<Item*> items;
     for (int i = 0; i < 3; i++) {
         items.push_back(arritems[i]);
     }
+    Win *win = new Win(1, 9);
+    items.push_back(win);
     Level levels[5][5];
     Player* playerexample;
     for (int i = 0; i < 5; i++) {
@@ -556,6 +574,7 @@ int main() {
             do { scanf("%d", &lvlnum); } while ((lvlnum < 1) || (lvlnum > 25));
             lvlnum--;
             level = levels[lvlnum%5][lvlnum/5];
+            level.sort();
             if (level.getPlayer()->getHealth() == 0)level.getPlayer()->addHealth(1);
             int moveResult = 0;
             while (moveResult != 27) {
@@ -565,9 +584,8 @@ int main() {
                 level.renderGrid();
                 moveResult = _getch();
                 level.movePlayer(moveResult);
-                for (Item& item : level.getItems()) {
-                    Item* it = &item;
-                    level.getPlayer()->checkCollision(it);
+                for (Item* item : level.getItems()) {
+                    level.getPlayer()->checkCollision(item);
                 }
                 for (Enemy& enemy : level.getEnemies()) {
                     level.getPlayer()->checkCollision(enemy);
